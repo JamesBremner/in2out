@@ -75,44 +75,44 @@ void cIn2Out::ParseOptions(int ac, char **av)
     }
 }
 
-    cGUI::cGUI(int ac, char **av)
-        : cStarterGUI(
-              "Starter",
-              {50, 50, 1000, 500}),
-        myfmOutput(wex::maker::make()),
-          myTCPinput(wex::maker::make<wex::tcp>(fm)),
-          myTCPoutput(wex::maker::make<wex::tcp>(myfmOutput))
-    {
-        in2out.ParseOptions(ac, av);
+cGUI::cGUI(int ac, char **av)
+    : cStarterGUI(
+          "Starter",
+          {50, 50, 1000, 500}),
+      myfmOutput(wex::maker::make()),
+      myTCPinput(wex::maker::make<wex::tcp>(fm)),
+      myTCPoutput(wex::maker::make<wex::tcp>(myfmOutput))
+{
+    in2out.ParseOptions(ac, av);
 
-        // delay connection attempts until windows setup complete
-        myStartTimer = new wex::timer(fm, 1000);
-        fm.events().timer(
-            [this](int id)
-            {
-                delete myStartTimer;
-                connect();
-            });
+    // delay connection attempts until windows setup complete
+    myStartTimer = new wex::timer(fm, 1000);
+    fm.events().timer(
+        [this](int id)
+        {
+            delete myStartTimer;
+            connect();
+        });
 
-        //  when an input source connects, setup to read anything sent
-        fm.events()
-            .tcpServerAccept(
-                [this]
-                {
-                    std::cout << "Input source connected\n";
-                    myTCPinput.read();
-                });
-
-        //  handle data received on input
-        fm.events().tcpRead(
+    //  when an input source connects, setup to read anything sent
+    fm.events()
+        .tcpServerAccept(
             [this]
             {
-                input();
+                std::cout << "Input source connected\n";
+                myTCPinput.read();
             });
 
-        // setup the windows
-        run();
-    }
+    //  handle data received on input
+    fm.events().tcpRead(
+        [this]
+        {
+            input();
+        });
+
+    // setup the windows
+    run();
+}
 
 void cGUI::connect()
 {
@@ -132,7 +132,7 @@ void cGUI::connect()
     try
     {
         std::cout << "looking for output server "
-            << in2out.outputIP() <<":"<< in2out.sOutputPort() << "\n";
+                  << in2out.outputIP() << ":" << in2out.sOutputPort() << "\n";
         myTCPoutput.client(
             in2out.outputIP(),
             in2out.sOutputPort());
@@ -167,12 +167,29 @@ void cGUI::input()
     std::cout << "Output " + msg << "\n";
 
     // send message to output
-    myTCPoutput.send( msg );
+    myTCPoutput.send(msg);
+}
 
+// handle some keyboard input
+void keyboardmonitor()
+{
+    std::string myString;
+    while (true)
+    {
+        std::cin >> myString;
+
+        // check for stop request
+        if (myString == "exit" ||
+            myString == "EXIT")
+        {
+            exit(0);
+        }
+    }
 }
 
 main(int argc, char *argv[])
 {
+    std::thread t(keyboardmonitor);
 
     cGUI theGUI(argc, argv);
 
