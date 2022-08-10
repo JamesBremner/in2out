@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/in2out.exe",
-            //  "args": ["127.0.0.1","27654"],
+              "args": ["--input", "27678", "--output" "127.0.0.1:27654"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bin",
             "environment": [],

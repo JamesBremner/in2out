@@ -13,7 +13,9 @@ class cIn2Out
 {
 public:
     cIn2Out();
+
     void ParseOptions(int ac, char **av);
+
     int inputPort() const
     {
         return myInputPort;
@@ -22,7 +24,15 @@ public:
     {
         return std::to_string(myInputPort);
     }
-    std::string Process( const std::string& input );
+    std::string outputIP() const
+    {
+        return myOutputIP;
+    }
+    std::string sOutputPort() const
+    {
+        return std::to_string(myOutputPort);
+    }
+    std::string Process(const std::string &input);
 
 private:
     int myInputPort;
@@ -36,7 +46,9 @@ public:
         : cStarterGUI(
               "Starter",
               {50, 50, 1000, 500}),
-          myTCPinput(wex::maker::make<wex::tcp>(fm))
+        myfmOutput(wex::maker::make()),
+          myTCPinput(wex::maker::make<wex::tcp>(fm)),
+          myTCPoutput(wex::maker::make<wex::tcp>(myfmOutput))
     {
         in2out.ParseOptions(ac, av);
 
@@ -66,7 +78,9 @@ public:
     }
 
 private:
+    wex::gui &myfmOutput;
     wex::tcp &myTCPinput;
+    wex::tcp &myTCPoutput;
     wex::timer *myStartTimer;
     cIn2Out in2out;
 
@@ -110,7 +124,7 @@ void cIn2Out::ParseOptions(int ac, char **av)
                       << desc << "\n";
             exit(0);
         }
-        myOutputIP = s.substr(0, p - 1);
+        myOutputIP = s.substr(0, p);
         myOutputPort = atoi(s.substr(p + 1).c_str());
     }
 
@@ -134,20 +148,21 @@ void cGUI::connect()
     }
     catch (std::runtime_error &e)
     {
-        std::cout << "Cannot start server " << e.what() << "\n";
+        std::cout << "Cannot start input server " << e.what() << "\n";
     }
 
-    // else
-    // {
-    //     try
-    //     {
-    //         myTCP.client();
-    //     }
-    //     catch (std::runtime_error &e)
-    //     {
-    //         status(std::string("Cannot connect to server ") + e.what());
-    //     }
-    // }
+    try
+    {
+        std::cout << "looking for output server "
+            << in2out.outputIP() <<":"<< in2out.sOutputPort() << "\n";
+        myTCPoutput.client(
+            in2out.outputIP(),
+            in2out.sOutputPort());
+    }
+    catch (std::runtime_error &e)
+    {
+        std::cout << "Cannot connect to output server " << e.what();
+    }
 }
 
 void cGUI::input()
@@ -163,10 +178,13 @@ void cGUI::input()
 
     std::cout << "Input: " + myTCPinput.readMsg() << "\n\n";
 
-    std::cout << "Output " + in2out.Process( msg ) << "\n";
-
     // setup for next message
     myTCPinput.read();
+
+    msg = in2out.Process(msg);
+    std::cout << "Output " + msg << "\n";
+    myTCPoutput.send( msg );
+
 }
 
 main(int argc, char *argv[])
