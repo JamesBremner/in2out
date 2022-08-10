@@ -113,9 +113,9 @@ void cIn2Out::connect()
     // wait for connection on input
     try
     {
-        myTCPinput.server(sInputPort());
+        myTCPinput.server(std::to_string(myInputPort));
         std::cout << "Waiting for input on port "
-                  << inputPort() << "\n";
+                  << myInputPort << "\n";
     }
     catch (std::runtime_error &e)
     {
@@ -126,9 +126,9 @@ void cIn2Out::connect()
     try
     {
         std::cout << "looking for output server "
-                  << outputIP() << ":" << sOutputPort() << "\n";
+                  << myOutputIP << ":" << sOutputPort() << "\n";
         myTCPoutput.client(
-            outputIP(),
+            myOutputIP,
             sOutputPort());
     }
     catch (std::runtime_error &e)
@@ -144,7 +144,7 @@ void cIn2Out::input()
     {
         std::cout << "Input Connection closed, waiting for new client\n";
 
-        myTCPinput.server(sInputPort());
+        myTCPinput.server(std::to_string(myInputPort));
         return;
     }
 

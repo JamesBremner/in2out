@@ -1,4 +1,6 @@
 #include <string>
+#include <wex.h>
+#include "tcp.h"
 class cIn2Out
 {
 public:
@@ -6,23 +8,6 @@ public:
 
     /// parse command line options for TCP addresses
     void ParseOptions(int ac, char **av);
-
-    int inputPort() const
-    {
-        return myInputPort;
-    }
-    std::string sInputPort() const
-    {
-        return std::to_string(myInputPort);
-    }
-    std::string outputIP() const
-    {
-        return myOutputIP;
-    }
-    std::string sOutputPort() const
-    {
-        return std::to_string(myOutputPort);
-    }
 
     /// connect the input and output sockets
     void connect();
