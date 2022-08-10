@@ -4,7 +4,6 @@ VPATH = ./src
 	# compiler include search paths
 INCS = -I./include \
 	-I../ravencode/pub/src \
-	-I../raven-set \
 	-I../boost/boost1_78 
 
 LIBS = \
@@ -28,6 +27,7 @@ CCflags = -std=c++17 $(OPT) -D_mingw_
 # sources
 OBJ_in2out = \
 	$(ODIR)/in2out.o  \
+	$(ODIR)/process.o  \
 	$(ODIR)/ctcp.o  \
 
 ### COMPILE

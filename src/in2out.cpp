@@ -22,6 +22,7 @@ public:
     {
         return std::to_string(myInputPort);
     }
+    std::string Process( const std::string& input );
 
 private:
     int myInputPort;
@@ -160,8 +161,9 @@ void cGUI::input()
     }
     auto msg = myTCPinput.readMsg();
 
-    // ascii
     std::cout << "Input: " + myTCPinput.readMsg() << "\n\n";
+
+    std::cout << "Output " + in2out.Process( msg ) << "\n";
 
     // setup for next message
     myTCPinput.read();
