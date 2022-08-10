@@ -16,18 +16,31 @@ public:
     cGUI(int ac, char **av);
 
 private:
-    wex::gui &myfmOutput;
-    wex::tcp &myTCPinput;
-    wex::tcp &myTCPoutput;
     wex::timer *myStartTimer;
     cIn2Out in2out;
-
-    void connect();
-    void input();
 };
 
-cIn2Out::cIn2Out() : myInputPort(-1), myOutputPort(-1)
+cIn2Out::cIn2Out() : myInputPort(-1), myOutputPort(-1),
+                     myfmInput(wex::maker::make()),
+                     myfmOutput(wex::maker::make()),
+                     myTCPinput(wex::maker::make<wex::tcp>(myfmInput)),
+                     myTCPoutput(wex::maker::make<wex::tcp>(myfmOutput))
 {
+    //  when an input source connects, setup to read anything sent
+    myfmInput.events()
+        .tcpServerAccept(
+            [this]
+            {
+                std::cout << "Input source connected\n";
+                myTCPinput.read();
+            });
+
+                //  handle data received on input
+    myfmInput.events().tcpRead(
+        [this]
+        {
+            input();
+        });
 }
 
 void cIn2Out::ParseOptions(int ac, char **av)
@@ -78,10 +91,7 @@ void cIn2Out::ParseOptions(int ac, char **av)
 cGUI::cGUI(int ac, char **av)
     : cStarterGUI(
           "Starter",
-          {50, 50, 1000, 500}),
-      myfmOutput(wex::maker::make()),
-      myTCPinput(wex::maker::make<wex::tcp>(fm)),
-      myTCPoutput(wex::maker::make<wex::tcp>(myfmOutput))
+          {50, 50, 1000, 500})
 {
     in2out.ParseOptions(ac, av);
 
@@ -91,37 +101,21 @@ cGUI::cGUI(int ac, char **av)
         [this](int id)
         {
             delete myStartTimer;
-            connect();
-        });
-
-    //  when an input source connects, setup to read anything sent
-    fm.events()
-        .tcpServerAccept(
-            [this]
-            {
-                std::cout << "Input source connected\n";
-                myTCPinput.read();
-            });
-
-    //  handle data received on input
-    fm.events().tcpRead(
-        [this]
-        {
-            input();
+            in2out.connect();
         });
 
     // setup the windows
     run();
 }
 
-void cGUI::connect()
+void cIn2Out::connect()
 {
     // wait for connection on input
     try
     {
-        myTCPinput.server(in2out.sInputPort());
+        myTCPinput.server(sInputPort());
         std::cout << "Waiting for input on port "
-                  << in2out.inputPort() << "\n";
+                  << inputPort() << "\n";
     }
     catch (std::runtime_error &e)
     {
@@ -132,10 +126,10 @@ void cGUI::connect()
     try
     {
         std::cout << "looking for output server "
-                  << in2out.outputIP() << ":" << in2out.sOutputPort() << "\n";
+                  << outputIP() << ":" << sOutputPort() << "\n";
         myTCPoutput.client(
-            in2out.outputIP(),
-            in2out.sOutputPort());
+            outputIP(),
+            sOutputPort());
     }
     catch (std::runtime_error &e)
     {
@@ -143,14 +137,14 @@ void cGUI::connect()
     }
 }
 
-void cGUI::input()
+void cIn2Out::input()
 {
     // check for connection closed
     if (!myTCPinput.isConnected())
     {
         std::cout << "Input Connection closed, waiting for new client\n";
 
-        myTCPinput.server(in2out.sInputPort());
+        myTCPinput.server(sInputPort());
         return;
     }
 
@@ -163,7 +157,7 @@ void cGUI::input()
     myTCPinput.read();
 
     // modify message
-    msg = in2out.Process(msg);
+    msg = Process(msg);
     std::cout << "Output " + msg << "\n";
 
     // send message to output
