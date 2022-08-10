@@ -12,5 +12,5 @@ A windows desktop console application to receive, process and transmit data over
 Sample command line
 
 ```
->in2out -input 5000 -output 127.0.0.1:50001
+>in2out --input 5000 --output 127.0.0.1:50001
 ```
