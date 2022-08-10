@@ -12,6 +12,14 @@ public:
     {
         return std::to_string(myInputPort);
     }
+    std::string outputIP() const
+    {
+        return myOutputIP;
+    }
+    std::string sOutputPort() const
+    {
+        return std::to_string(myOutputPort);
+    }
     std::string Process( const std::string& input );
 
 private:
