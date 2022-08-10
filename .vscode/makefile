@@ -8,6 +8,7 @@ INCS = -I./include \
 	-I../boost/boost1_78 
 
 LIBS = \
+	-lws2_32 -lwsock32 \
 	-lgdiplus -lgdi32 -lcomdlg32 -lstdc++fs \
 	-L../boost/boost1_78/lib \
 		-lboost_system-mgw11-mt-x64-1_78 \
@@ -26,9 +27,13 @@ CCflags = -std=c++17 $(OPT) -D_mingw_
 
 # sources
 OBJ_in2out = \
-	$(ODIR)/in2out.o 
+	$(ODIR)/in2out.o  \
+	$(ODIR)/ctcp.o  \
 
 ### COMPILE
+
+$(ODIR)/ctcp.o: $(RDIR)/ctcp.cpp
+	gcc	 -c -o $@ $<
 
 $(ODIR)/%.o: %.cpp  
 	g++  $(CCflags) \
