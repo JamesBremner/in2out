@@ -101,7 +101,6 @@ void cIn2Out::connect()
 
 void cIn2Out::input(const std::string& msg)
 {
-
     std::cout << "Input: " + msg << "\n";
 
     // modify message
@@ -110,6 +109,23 @@ void cIn2Out::input(const std::string& msg)
 
     // send message to output
     myTCPoutput.send(mod);
+}
+
+std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
+{
+    std::vector<std::string> output;
+    static std::string partial;
+    partial += msg;
+    int p = partial.find("\n");
+    if( p == -1 )
+        return output;
+    while( p != -1)
+    {
+        output.push_back( partial.substr(0,p));
+        partial = partial.substr(p+1);
+        p = partial.find("\n");
+    }
+    return output;
 }
 
 // handle some keyboard input
@@ -129,8 +145,29 @@ void keyboardmonitor()
     }
 }
 
+void test()
+{
+     cIn2Out in2out(1,0);
+
+    std::vector<std::string> vt {
+        "test1\n",
+        "test2\n",
+        "combined\ntest3\n",
+        "partial",
+        " test4\n"
+    };
+    for( auto& t : vt )
+    {
+        for( auto& l : in2out.frameCheck(t) )
+        {
+            std::cout << l << "\n----\n";
+        }
+    }   
+}
 main(int argc, char *argv[])
 {
+    //test();
+
     std::thread t(keyboardmonitor);
 
     cIn2Out in2out(argc,argv);
