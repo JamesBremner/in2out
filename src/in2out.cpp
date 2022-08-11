@@ -7,22 +7,15 @@
 #include <boost/program_options.hpp>
 #include <wex.h>
 #include "tcp.h"
-#include "cStarterGUI.h"
+
 #include "in2out.h"
 
-class cGUI : public cStarterGUI
+cIn2Out::cIn2Out(int ac, char **av) 
 {
-public:
-    cGUI(int ac, char **av);
+    ParseOptions(ac, av);
 
-private:
-    wex::timer *myStartTimer;
-    cIn2Out in2out;
-};
-
-// cIn2Out::cIn2Out() : myInputPort(-1), myOutputPort(-1)
-// {
-// }
+    connect();
+}
 
 void cIn2Out::ParseOptions(int ac, char **av)
 {
@@ -69,26 +62,6 @@ void cIn2Out::ParseOptions(int ac, char **av)
     }
 }
 
-cGUI::cGUI(int ac, char **av)
-    : cStarterGUI(
-          "Starter",
-          {50, 50, 1000, 500})
-{
-    in2out.ParseOptions(ac, av);
-
-    // delay connection attempts until windows setup complete
-    myStartTimer = new wex::timer(fm, 1000);
-    fm.events().timer(
-        [this](int id)
-        {
-            delete myStartTimer;
-            in2out.connect();
-        });
-
-    // setup the windows
-    run();
-}
-
 void cIn2Out::connect()
 {
     // wait for connection on input
@@ -125,6 +98,8 @@ void cIn2Out::connect()
     {
         std::cout << "Cannot connect to output server " << e.what();
     }
+
+    myTCPinput.run();
 }
 
 void cIn2Out::input(const std::string& msg)
@@ -161,7 +136,7 @@ main(int argc, char *argv[])
 {
     std::thread t(keyboardmonitor);
 
-    cGUI theGUI(argc, argv);
+    cIn2Out in2out(argc,argv);
 
     return 0;
 }

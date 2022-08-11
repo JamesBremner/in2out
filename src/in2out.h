@@ -42,6 +42,11 @@ public:
                 myTCP.read();
             });
     }
+    /** Start server
+     * @param[in] port to listen for clients
+     * @param[in] connectHandler event handler to call when client connects
+     * @param[in] readHandler event handler to call when client sands a message
+     */
     void server(
         const std::string &port,
         std::function<void(std::string &port)> connectHandler,
@@ -53,14 +58,31 @@ public:
         myTCP.server(port);
     }
 
+    /// Connect to server
     void client(const std::string &ipaddr, const std::string &port)
     {
         myTCP.client(ipaddr, port);
     }
 
+    /// Send message to connected peer
     void send(const std::string &msg)
     {
         myTCP.send(msg);
+    }
+
+    /** Start the windex event handler
+     * 
+     * This blocks!
+     * 
+     * Call this once when everything has been setup
+     * 
+     * This is used by console type applications.
+     * GUI applications should not call this
+     * They will call run on the main application window when setup is complete
+     */
+    void run()
+    {
+        myWindow.run();
     }
 
 private:
@@ -74,7 +96,7 @@ private:
 class cIn2Out
 {
 public:
-    // cIn2Out();
+     cIn2Out(int ac, char **av);
 
     /// parse command line options for TCP addresses
     void ParseOptions(int ac, char **av);
@@ -85,7 +107,7 @@ public:
     /// handle some input
     void input(const std::string &msg);
 
-    /// process a line of onput
+    /// process a line of input
     std::string Process(const std::string &input);
 
 private:
