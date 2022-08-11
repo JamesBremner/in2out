@@ -1,12 +1,9 @@
 #include <string>
-#include <fstream>
 #include <sstream>
 #include <iostream>
 #include <vector>
-#include <algorithm>
+
 #include <boost/program_options.hpp>
-#include <wex.h>
-#include "tcp.h"
 
 #include "in2out.h"
 
