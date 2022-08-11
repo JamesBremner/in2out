@@ -7,7 +7,7 @@
 
 #include "in2out.h"
 
-cIn2Out::cIn2Out(int ac, char **av) 
+cIn2Out::cIn2Out(int ac, char **av)
 {
     ParseOptions(ac, av);
 
@@ -66,14 +66,14 @@ void cIn2Out::connect()
     {
         myTCPinput.server(
             std::to_string(myInputPort),
-            [&](std::string & port)
-                {
-                    std::cout << "Input connected on " << port << "\n";
-                },
-            [&](std::string & port, const std::string &msg)
-                {
-                    input(msg);
-                });
+            [&](std::string &port)
+            {
+                std::cout << "Input connected on " << port << "\n";
+            },
+            [&](std::string &port, const std::string &msg)
+            {
+                input(msg);
+            });
         std::cout << "Waiting for input on port "
                   << myInputPort << "\n";
     }
@@ -99,16 +99,20 @@ void cIn2Out::connect()
     myTCPinput.run();
 }
 
-void cIn2Out::input(const std::string& msg)
+void cIn2Out::input(const std::string &msg)
 {
     std::cout << "Input: " + msg << "\n";
 
-    // modify message
-    auto mod = Process(msg);
-    std::cout << "Output " + mod << "\n";
+    // Loop over complete lines
+    for (auto &line : frameCheck(msg))
+    {
+        // modify message
+        auto mod = Process(line);
+        std::cout << "Output " + mod << "\n";
 
-    // send message to output
-    myTCPoutput.send(mod);
+        // send message to output
+        myTCPoutput.send(mod);
+    }
 }
 
 std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
@@ -117,12 +121,12 @@ std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
     static std::string partial;
     partial += msg;
     int p = partial.find("\n");
-    if( p == -1 )
+    if (p == -1)
         return output;
-    while( p != -1)
+    while (p != -1)
     {
-        output.push_back( partial.substr(0,p));
-        partial = partial.substr(p+1);
+        output.push_back(partial.substr(0, p));
+        partial = partial.substr(p + 1);
         p = partial.find("\n");
     }
     return output;
@@ -147,30 +151,29 @@ void keyboardmonitor()
 
 void test()
 {
-     cIn2Out in2out(1,0);
+    cIn2Out in2out(1, 0);
 
-    std::vector<std::string> vt {
+    std::vector<std::string> vt{
         "test1\n",
         "test2\n",
         "combined\ntest3\n",
         "partial",
-        " test4\n"
-    };
-    for( auto& t : vt )
+        " test4\n"};
+    for (auto &t : vt)
     {
-        for( auto& l : in2out.frameCheck(t) )
+        for (auto &l : in2out.frameCheck(t))
         {
             std::cout << l << "\n----\n";
         }
-    }   
+    }
 }
 main(int argc, char *argv[])
 {
-    //test();
+    // test();
 
     std::thread t(keyboardmonitor);
 
-    cIn2Out in2out(argc,argv);
+    cIn2Out in2out(argc, argv);
 
     return 0;
 }
