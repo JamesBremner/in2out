@@ -35,7 +35,7 @@ OBJ_in2out = \
 $(ODIR)/ctcp.o: $(RDIR)/ctcp.cpp
 	gcc	 -c -o $@ $<
 
-$(ODIR)/%.o: %.cpp  
+$(ODIR)/%.o: %.cpp in2out.h
 	g++  $(CCflags) \
 	-c -o $@ $< $(INCS)
 

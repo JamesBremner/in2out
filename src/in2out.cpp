@@ -20,28 +20,9 @@ private:
     cIn2Out in2out;
 };
 
-cIn2Out::cIn2Out() : myInputPort(-1), myOutputPort(-1),
-                     myfmInput(wex::maker::make()),
-                     myfmOutput(wex::maker::make()),
-                     myTCPinput(wex::maker::make<wex::tcp>(myfmInput)),
-                     myTCPoutput(wex::maker::make<wex::tcp>(myfmOutput))
-{
-    //  when an input source connects, setup to read anything sent
-    myfmInput.events()
-        .tcpServerAccept(
-            [this]
-            {
-                std::cout << "Input source connected\n";
-                myTCPinput.read();
-            });
-
-                //  handle data received on input
-    myfmInput.events().tcpRead(
-        [this]
-        {
-            input();
-        });
-}
+// cIn2Out::cIn2Out() : myInputPort(-1), myOutputPort(-1)
+// {
+// }
 
 void cIn2Out::ParseOptions(int ac, char **av)
 {
@@ -113,7 +94,16 @@ void cIn2Out::connect()
     // wait for connection on input
     try
     {
-        myTCPinput.server(std::to_string(myInputPort));
+        myTCPinput.server(
+            std::to_string(myInputPort),
+            [&](std::string & port)
+                {
+                    std::cout << "Input connected on " << port << "\n";
+                },
+            [&](std::string & port, const std::string &msg)
+                {
+                    input(msg);
+                });
         std::cout << "Waiting for input on port "
                   << myInputPort << "\n";
     }
@@ -126,10 +116,10 @@ void cIn2Out::connect()
     try
     {
         std::cout << "looking for output server "
-                  << myOutputIP << ":" << sOutputPort() << "\n";
+                  << myOutputIP << ":" << myOutputPort << "\n";
         myTCPoutput.client(
             myOutputIP,
-            sOutputPort());
+            std::to_string(myOutputPort));
     }
     catch (std::runtime_error &e)
     {
@@ -137,31 +127,17 @@ void cIn2Out::connect()
     }
 }
 
-void cIn2Out::input()
+void cIn2Out::input(const std::string& msg)
 {
-    // check for connection closed
-    if (!myTCPinput.isConnected())
-    {
-        std::cout << "Input Connection closed, waiting for new client\n";
 
-        myTCPinput.server(std::to_string(myInputPort));
-        return;
-    }
-
-    // read the message received
-    auto msg = myTCPinput.readMsg();
-
-    std::cout << "Input: " + myTCPinput.readMsg() << "\n\n";
-
-    // setup for next message
-    myTCPinput.read();
+    std::cout << "Input: " + msg << "\n";
 
     // modify message
-    msg = Process(msg);
-    std::cout << "Output " + msg << "\n";
+    auto mod = Process(msg);
+    std::cout << "Output " + mod << "\n";
 
     // send message to output
-    myTCPoutput.send(msg);
+    myTCPoutput.send(mod);
 }
 
 // handle some keyboard input
