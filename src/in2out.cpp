@@ -115,6 +115,12 @@ void cIn2Out::run()
 void cIn2Out::input(const std::string &msg)
 {
     std::cout << "Input: " + msg << "\n";
+    std::cout << "Input Hex: ";
+    for( int k = 0; k < msg.size(); k++ )
+    {
+        std::cout << std::hex << (int)msg[k] << " ";
+    }
+    std::cout << "\n\n";
 
     // Loop over complete lines
     for (auto &line : frameCheck(msg))
@@ -192,14 +198,16 @@ void cIn2Out::test()
 }
 main(int argc, char *argv[])
 {
+    std::cout << "in2out built " + std::string(__DATE__) + " " + std::string(__TIME__) + "\n";
+
     // run tests
     cIn2Out test;
 
-    // start keyboard monitor
-    // std::thread t(keyboardmonitor);
-
     // start sockets
     cIn2Out in2out(argc, argv);
+
+    // enable frame checking
+    in2out.frameCheck( true );
 
     // start event handler
     in2out.run();
