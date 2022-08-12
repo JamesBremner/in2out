@@ -58,4 +58,5 @@ private:
 
     void test();
     void keyboardmonitor();
+    void connectOutputServer();
 };

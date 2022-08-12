@@ -93,7 +93,12 @@ void cIn2Out::connect()
     }
 
     // attempt connection to server for output
-    try
+    connectOutputServer();
+}
+
+void cIn2Out::connectOutputServer()
+{
+     try
     {
         std::cout << "looking for output server "
                   << myOutputIP << ":" << myOutputPort << "\n";
@@ -104,19 +109,26 @@ void cIn2Out::connect()
     catch (std::runtime_error &e)
     {
         std::cout << "Cannot connect to output server " << e.what();
-    }
+    }   
 }
 
 void cIn2Out::run()
 {
-    myTCPinput.run();
+    try
+    {
+        myTCPinput.run();
+    }
+    catch (std::runtime_error &e)
+    {
+        std::cout << "cIn2Out::run: " << e.what();
+    }
 }
 
 void cIn2Out::input(const std::string &msg)
 {
     std::cout << "Input: " + msg << "\n";
     std::cout << "Input Hex: ";
-    for( int k = 0; k < msg.size(); k++ )
+    for (int k = 0; k < msg.size(); k++)
     {
         std::cout << std::hex << (int)msg[k] << " ";
     }
@@ -130,6 +142,12 @@ void cIn2Out::input(const std::string &msg)
         std::cout << "Output " + mod << "\n";
 
         // send message to output
+        if( !myTCPoutput.isConnected() )
+        {
+            std::cout << "no-one is listening\n";
+            connectOutputServer();
+            continue;
+        }
         myTCPoutput.send(mod);
     }
 }
@@ -207,7 +225,7 @@ main(int argc, char *argv[])
     cIn2Out in2out(argc, argv);
 
     // enable frame checking
-    in2out.frameCheck( true );
+    in2out.frameCheck(true);
 
     // start event handler
     in2out.run();

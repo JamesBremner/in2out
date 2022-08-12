@@ -66,6 +66,11 @@ public:
         myTCP.client(ipaddr, port);
     }
 
+    bool isConnected()
+    {
+        return myTCP.isConnected();
+    }
+
     /// Send message to connected peer
     void send(const std::string &msg)
     {
