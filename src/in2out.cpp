@@ -9,9 +9,19 @@
 
 cIn2Out::cIn2Out(int ac, char **av) : myframeCheck(false)
 {
+    // start keyboard monitor for exit command
+    myKeyboardThread = new std::thread(
+        keyboardmonitor, this);
+
+    // parse command line
     ParseOptions(ac, av);
 
+    // start the sockets
     connect();
+}
+cIn2Out::cIn2Out()
+{
+    test();
 }
 
 void cIn2Out::ParseOptions(int ac, char **av)
@@ -143,7 +153,7 @@ std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
 }
 
 // handle some keyboard input
-void keyboardmonitor()
+void cIn2Out::keyboardmonitor()
 {
     std::string myString;
     while (true)
@@ -174,7 +184,8 @@ void cIn2Out::test()
         if (frameCheck(t.first).size() != t.second)
         {
             std::cout << "Failed test " << t.first
-                      << " => " << l.size() << "\n";
+                      << " => " << frameCheck(t.first).size()
+                      << "\n";
             exit(1);
         }
     }
@@ -185,7 +196,7 @@ main(int argc, char *argv[])
     cIn2Out test;
 
     // start keyboard monitor
-    std::thread t(keyboardmonitor);
+    // std::thread t(keyboardmonitor);
 
     // start sockets
     cIn2Out in2out(argc, argv);

@@ -7,10 +7,7 @@ public:
     cIn2Out(int ac, char **av);
 
     /// CTOR to run tests
-    cIn2Out()
-    {
-        test();
-    }
+    cIn2Out();
 
     /// parse command line options for TCP addresses
     void ParseOptions(int ac, char **av);
@@ -57,5 +54,8 @@ private:
     wex::cSocket myTCPinput;
     wex::cSocket myTCPoutput;
 
+    std::thread* myKeyboardThread;
+
     void test();
+    void keyboardmonitor();
 };
