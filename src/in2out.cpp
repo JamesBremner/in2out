@@ -7,7 +7,7 @@
 
 #include "in2out.h"
 
-cIn2Out::cIn2Out(int ac, char **av)
+cIn2Out::cIn2Out(int ac, char **av) : myframeCheck(false)
 {
     ParseOptions(ac, av);
 
@@ -95,7 +95,10 @@ void cIn2Out::connect()
     {
         std::cout << "Cannot connect to output server " << e.what();
     }
+}
 
+void cIn2Out::run()
+{
     myTCPinput.run();
 }
 
@@ -119,6 +122,13 @@ std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
 {
     std::vector<std::string> output;
     static std::string partial;
+
+    if (!myframeCheck)
+    {
+        output.push_back(msg);
+        return output;
+    }
+
     partial += msg;
     int p = partial.find("\n");
     if (p == -1)
@@ -149,31 +159,39 @@ void keyboardmonitor()
     }
 }
 
-void test()
+void cIn2Out::test()
 {
-    cIn2Out in2out(1, 0);
+    frameCheck(true);
 
-    std::vector<std::string> vt{
-        "test1\n",
-        "test2\n",
-        "combined\ntest3\n",
-        "partial",
-        " test4\n"};
+    std::vector<std::pair<std::string, int>> vt{
+        {"test1\n", 1},
+        {"test2\n", 1},
+        {"combined\ntest3\n", 2},
+        {"partial", 0},
+        {" test4\n", 1}};
     for (auto &t : vt)
     {
-        for (auto &l : in2out.frameCheck(t))
+        if (frameCheck(t.first).size() != t.second)
         {
-            std::cout << l << "\n----\n";
+            std::cout << "Failed test " << t.first
+                      << " => " << l.size() << "\n";
+            exit(1);
         }
     }
 }
 main(int argc, char *argv[])
 {
-    // test();
+    // run tests
+    cIn2Out test;
 
+    // start keyboard monitor
     std::thread t(keyboardmonitor);
 
+    // start sockets
     cIn2Out in2out(argc, argv);
+
+    // start event handler
+    in2out.run();
 
     return 0;
 }

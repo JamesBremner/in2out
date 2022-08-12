@@ -3,7 +3,14 @@
 class cIn2Out
 {
 public:
-     cIn2Out(int ac, char **av);
+    /// CTOR to parse command line options and connect sockets
+    cIn2Out(int ac, char **av);
+
+    /// CTOR to run tests
+    cIn2Out()
+    {
+        test();
+    }
 
     /// parse command line options for TCP addresses
     void ParseOptions(int ac, char **av);
@@ -23,12 +30,32 @@ public:
     /// process a line of input
     std::string Process(const std::string &input);
 
+    /** Start the windex event handler
+     * 
+     * This blocks!
+     * 
+     * Call this once when everything has been setup
+     * 
+     * This is used by console type applications.
+     * GUI applications should not call this
+     * They will call run on the main application window when setup is complete
+     */
+    void run();
+
+    /// Enable or disable frame checking
+    void frameCheck(bool f)
+    {
+        myframeCheck = f;
+    }
+
 private:
     int myInputPort;
     std::string myOutputIP;
     int myOutputPort;
+    bool myframeCheck;
 
     wex::cSocket myTCPinput;
     wex::cSocket myTCPoutput;
 
+    void test();
 };
