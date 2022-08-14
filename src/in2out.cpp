@@ -102,6 +102,10 @@ void cIn2Out::connectOutputServer()
     {
         std::cout << "looking for output server "
                   << myOutputIP << ":" << myOutputPort << "\n";
+        
+        // attempt connect just once
+        myTCPoutput.RetryConnectServer( false );
+
         myTCPoutput.client(
             myOutputIP,
             std::to_string(myOutputPort));

@@ -3,100 +3,123 @@
 #include <wex.h>
 #include "tcp.h"
 
-namespace wex {
-class cSocket
+namespace wex
 {
-public:
-    cSocket() : myWindow(maker::make()),
-                myTCP(&myWindow),
-                myConnectHandler([](std::string port) {})
+    class cSocket
     {
-        //  when a client connects, setup to read anything sent
-        myWindow.events()
-            .tcpServerAccept(
+    public:
+        cSocket() : myWindow(maker::make()),
+                    myTCP(&myWindow),
+                    myConnectHandler([](std::string port) {})
+        {
+            //  when a client connects, setup to read anything sent
+            myWindow.events()
+                .tcpServerAccept(
+                    [this]
+                    {
+                        myConnectHandler(myPort);
+                        myTCP.read();
+                    });
+
+            //  handle data received on input
+            myWindow.events().tcpRead(
                 [this]
                 {
-                    myConnectHandler(myPort);
+                    // check for connection closed
+                    if (!myTCP.isConnected())
+                    {
+                        if (myIpaddr.empty())
+                        {
+                            // client disconnect
+                            std::cout << "Input Connection closed, waiting for new client\n";
+
+                            server(
+                                myPort,
+                                myConnectHandler,
+                                myReadHandler);
+                        }
+                        else
+                        {
+                            // server disconnected
+                            std::cout << "server disconnected\n";
+                        }
+                        return;
+                    }
+
+                    myReadHandler(
+                        myPort,
+                        myTCP.readMsg());
+
+                    // setup for next message
                     myTCP.read();
                 });
+        }
+        /** Start server
+         * @param[in] port to listen for clients
+         * @param[in] connectHandler event handler to call when client connects
+         * @param[in] readHandler event handler to call when client sands a message
+         */
+        void server(
+            const std::string &port,
+            std::function<void(std::string &port)> connectHandler,
+            std::function<void(std::string &port, const std::string &msg)> readHandler)
+        {
+            myPort = port;
+            myIpaddr = "";
+            myConnectHandler = connectHandler;
+            myReadHandler = readHandler;
+            myTCP.server(port);
+        }
 
-        //  handle data received on input
-        myWindow.events().tcpRead(
-            [this]
-            {
-                // check for connection closed
-                if (!myTCP.isConnected())
-                {
-                    std::cout << "Input Connection closed, waiting for new client\n";
+        /** Configure client() blocking
+         *
+         * true: keep trying until connection made ( default on construction )
+         * false: if connection refused return after one attempt
+         */
+        void RetryConnectServer(bool f)
+        {
+            myTCP.RetryConnectServer(f);
+        }
+        /// Connect to server
+        void client(const std::string &ipaddr, const std::string &port)
+        {
+            myIpaddr = ipaddr;
+            myPort = port;
+            myTCP.client(ipaddr, port);
+        }
 
-                    server(
-                        myPort,
-                        myConnectHandler,
-                        myReadHandler);
-                    return;
-                }
+        bool isConnected()
+        {
+            return myTCP.isConnected();
+        }
 
-                myReadHandler(
-                    myPort,
-                    myTCP.readMsg());
+        /// Send message to connected peer
+        void send(const std::string &msg)
+        {
+            myTCP.send(msg);
+        }
 
-                // setup for next message
-                myTCP.read();
-            });
-    }
-    /** Start server
-     * @param[in] port to listen for clients
-     * @param[in] connectHandler event handler to call when client connects
-     * @param[in] readHandler event handler to call when client sands a message
-     */
-    void server(
-        const std::string &port,
-        std::function<void(std::string &port)> connectHandler,
-        std::function<void(std::string &port, const std::string &msg)> readHandler)
-    {
-        myPort = port;
-        myConnectHandler = connectHandler;
-        myReadHandler = readHandler;
-        myTCP.server(port);
-    }
+        /** Start the windex event handler
+         *
+         * This blocks!
+         *
+         * Call this once when everything has been setup
+         *
+         * This is used by console type applications.
+         * GUI applications should not call this
+         * They will call run on the main application window when setup is complete
+         */
+        void run()
+        {
+            myWindow.run();
+        }
 
-    /// Connect to server
-    void client(const std::string &ipaddr, const std::string &port)
-    {
-        myTCP.client(ipaddr, port);
-    }
-
-    bool isConnected()
-    {
-        return myTCP.isConnected();
-    }
-
-    /// Send message to connected peer
-    void send(const std::string &msg)
-    {
-        myTCP.send(msg);
-    }
-
-    /** Start the windex event handler
-     * 
-     * This blocks!
-     * 
-     * Call this once when everything has been setup
-     * 
-     * This is used by console type applications.
-     * GUI applications should not call this
-     * They will call run on the main application window when setup is complete
-     */
-    void run()
-    {
-        myWindow.run();
-    }
-
-private:
-    gui &myWindow;
-    tcp myTCP;
-    std::function<void(std::string &port)> myConnectHandler;
-    std::function<void(std::string &port, const std::string &msg)> myReadHandler;
-    std::string myPort;
-};
+    private:
+        gui &myWindow;
+        tcp myTCP;
+        std::function<void(std::string &port)> myConnectHandler;
+        std::function<void(std::string &port, const std::string &msg)> myReadHandler;
+        std::string myPort;
+        std::string myIpaddr;
+    };
 }
