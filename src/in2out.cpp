@@ -98,13 +98,13 @@ void cIn2Out::connect()
 
 void cIn2Out::connectOutputServer()
 {
-     try
+    try
     {
         std::cout << "looking for output server "
                   << myOutputIP << ":" << myOutputPort << "\n";
-        
+
         // attempt connect just once
-        myTCPoutput.RetryConnectServer( false );
+        myTCPoutput.RetryConnectServer(false);
 
         myTCPoutput.client(
             myOutputIP,
@@ -113,7 +113,7 @@ void cIn2Out::connectOutputServer()
     catch (std::runtime_error &e)
     {
         std::cout << "Cannot connect to output server " << e.what();
-    }   
+    }
 }
 
 void cIn2Out::run()
@@ -138,20 +138,45 @@ void cIn2Out::input(const std::string &msg)
     }
     std::cout << "\n\n";
 
+    // add to end og witing buffer
+    waitAddEnd(msg);
+
+    // check server is connected
+    if (!myTCPoutput.isConnected())
+    {
+        std::cout << "no-one is listening\n";
+
+        // attempt new connection to listener
+        connectOutputServer();
+
+        // at this point we do not know wether or not the connect to server will succeed
+        // the message is safely stored in the waiting buffer
+        // and will be sent when the next input arrives if connection was succesful
+        return;
+    }
+
     // Loop over complete lines
-    for (auto &line : frameCheck(msg))
+    auto completeLines = frameCheck(std::string(""));
+    for (auto &line : completeLines)
     {
         // modify message
         auto mod = Process(line);
         std::cout << "Output " + mod << "\n";
 
-        // send message to output
-        if( !myTCPoutput.isConnected() )
+        // check server is still connected
+        if (!myTCPoutput.isConnected())
         {
-            std::cout << "no-one is listening\n";
+            std::cout << "listener disconnected while sending\n"
+                      << "flushing wait buffer\n";
+            waitFlush();
+
+            // attempt new connection to listener
             connectOutputServer();
-            continue;
+
+            return;
         }
+
+        // send message to output
         myTCPoutput.send(mod);
     }
 }
@@ -159,24 +184,35 @@ void cIn2Out::input(const std::string &msg)
 std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
 {
     std::vector<std::string> output;
-    static std::string partial;
 
     if (!myframeCheck)
     {
+        // no frame checking required
         output.push_back(msg);
         return output;
     }
 
-    partial += msg;
-    int p = partial.find("\n");
+    // protect wait buffer from being accessed from another thread
+    std::lock_guard<std::mutex> lck(myWaitingMutex);
+
+    // check for complete line in wait buffer
+    int p = myWaiting.find("\n");
     if (p == -1)
-        return output;
+        return output;      // nothing ready to be sent
+
+    // loop over complete lines in wait buffer    
     while (p != -1)
     {
-        output.push_back(partial.substr(0, p));
-        partial = partial.substr(p + 1);
-        p = partial.find("\n");
+        // copy line to output buffer
+        output.push_back(myWaiting.substr(0, p));
+
+        // remove line from wait buffer
+        myWaiting = myWaiting.substr(p + 1);
+
+        // check for another line
+        p = myWaiting.find("\n");
     }
+
     return output;
 }
 
@@ -194,7 +230,32 @@ void cIn2Out::keyboardmonitor()
         {
             exit(0);
         }
+
+        // check for flush request
+        if (myString == "flush" ||
+            myString == "FLUSH")
+        {
+            waitFlush();
+        }
     }
+}
+
+void cIn2Out::waitFlush()
+{
+    std::lock_guard<std::mutex> lck(myWaitingMutex);
+    std::cout << "flushing waiting " << myWaiting.size() << "\n";
+    myWaiting = "";
+    return;
+}
+void cIn2Out::waitAddFront(const std::string &s)
+{
+    std::lock_guard<std::mutex> lck(myWaitingMutex);
+    myWaiting = s + myWaiting;
+}
+void cIn2Out::waitAddEnd(const std::string &s)
+{
+    std::lock_guard<std::mutex> lck(myWaitingMutex);
+    myWaiting += s;
 }
 
 void cIn2Out::test()
@@ -209,10 +270,11 @@ void cIn2Out::test()
         {" test4\n", 1}};
     for (auto &t : vt)
     {
-        if (frameCheck(t.first).size() != t.second)
+        waitAddEnd(t.first);
+        if (frameCheck(std::string("")).size() != t.second)
         {
             std::cout << "Failed test " << t.first
-                      << " => " << frameCheck(t.first).size()
+                      << " => " << frameCheck(std::string("")).size()
                       << "\n";
             exit(1);
         }

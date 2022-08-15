@@ -46,17 +46,40 @@ public:
     }
 
 private:
+
+    /// input server config
     int myInputPort;
+
+    /// listerner server config
     std::string myOutputIP;
     int myOutputPort;
+
+    /// flag, true if framing error recovery required
     bool myframeCheck;
 
+    /// socket wrappers
     wex::cSocket myTCPinput;
     wex::cSocket myTCPoutput;
 
+    /// thread watching for keyboard input
     std::thread* myKeyboardThread;
+
+    /** Buffer containing unmodified data waiting to be sent
+     * Data may be waiting because:
+     * - a partial line arrived and is waiting for the rest of the line
+     * - several lines arrived in one message and lines are waiting for previous lines to be sent
+     * - data may have arrived when the listener was disconnected
+     */
+    std::string myWaiting;
+    std::mutex myWaitingMutex;
 
     void test();
     void keyboardmonitor();
     void connectOutputServer();
+
+    /// Thread safe acces to waiting to be sent
+    void waitFlush();
+    void waitAddFront( const std::string& s);
+    void waitAddEnd( const std::string& s);
+
 };
