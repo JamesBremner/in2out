@@ -1,4 +1,4 @@
-#include "cSocket.h"
+#include "tcp.h"
 
 class cIn2Out
 {
