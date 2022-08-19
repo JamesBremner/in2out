@@ -42,6 +42,11 @@
                 "kind": "build",
                 "isDefault": false
             }
+        },
+        {
+            "label": "display workspace path",
+            "type":"shell",
+            "command": "echo ${workspaceFolder}"
         }
 
     ]
