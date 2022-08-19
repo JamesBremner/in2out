@@ -10,7 +10,7 @@ public:
     cIn2Out();
 
     /// parse command line options for TCP addresses
-    void ParseOptions(int ac, char **av);
+    void ParseOptionsNoBoost(int ac, char **av);
 
     /// connect the input and output sockets
     void connect();

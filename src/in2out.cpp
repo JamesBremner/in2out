@@ -3,8 +3,6 @@
 #include <iostream>
 #include <vector>
 
-#include <boost/program_options.hpp>
-
 #include "in2out.h"
 
 cIn2Out::cIn2Out(int ac, char **av) : myframeCheck(false)
@@ -14,7 +12,7 @@ cIn2Out::cIn2Out(int ac, char **av) : myframeCheck(false)
         keyboardmonitor, this);
 
     // parse command line
-    ParseOptions(ac, av);
+    ParseOptionsNoBoost(ac, av);
 
     // start the sockets
     connect();
@@ -24,48 +22,54 @@ cIn2Out::cIn2Out()
     test();
 }
 
-void cIn2Out::ParseOptions(int ac, char **av)
+void cIn2Out::ParseOptionsNoBoost(int ac, char **av)
 {
-    namespace po = boost::program_options;
+   
+    std::string desc(
+        "\n--help\t\tproduce help message\n"
+        "--input\t\tPort to listen for input\n"
+        "--output\tIP address and port to send output e.g. 127.0.0.1:5001\n");
 
-    // Declare the supported options.
-    po::options_description desc("Command line options\nOmmitted options will be read from file P4WRSConfig.txt");
-    desc.add_options()("help", "produce help message\n")("input", po::value<int>()->default_value(5000), "Port to listen for input")("output", po::value<std::string>()->default_value("127.0.0.1:5001"), "IP address and port to send output");
-
-    po::variables_map vm;
-
-    po::store(po::parse_command_line(ac, av, desc), vm);
-    po::notify(vm);
-
-    if (ac == 1 || vm.count("help"))
+    if (ac <= 1)
     {
-        std::cout << "\n"
-                  << desc << "\n";
+        std::cout << desc;
         exit(0);
     }
-    if (vm.count("input"))
-        myInputPort = vm["input"].as<int>();
-    if (vm.count("output"))
+
+    std::string cmdline;
+    for( int t = 1 ; t < ac; t++ )
+        cmdline += std::string(av[t]) + " ";
+
+    std::istringstream iss( cmdline );
+    std::string token;
+    for (int k = 0; k < 2; k++)
     {
-        auto s = vm["output"].as<std::string>();
-        int p = s.find(":");
-        if (p == -1)
+        iss >> token;
+        if (token == "--help")
         {
-            std::cout << "\n"
-                      << desc << "\n";
+            std::cout << desc;
             exit(0);
         }
-        myOutputIP = s.substr(0, p);
-        myOutputPort = atoi(s.substr(p + 1).c_str());
-    }
-
-    if (myInputPort == -1 ||
-        myOutputPort == -1 ||
-        myOutputIP == "")
-    {
-        std::cout << "\n"
-                  << desc << "\n";
-        exit(0);
+        if (token == "--input")
+        {
+            iss >> token;
+            myInputPort = atoi(token.c_str());
+            continue;
+        }
+        if (token == "--output")
+        {
+            iss >> token;
+            int p = token.find(":");
+            if (p == -1)
+            {
+                std::cout << "\n"
+                          << desc << "\n";
+                exit(0);
+            }
+            myOutputIP = token.substr(0, p);
+            myOutputPort = atoi(token.substr(p + 1).c_str());
+            continue;
+        }
     }
 }
 
@@ -98,14 +102,14 @@ void cIn2Out::connect()
 
 void cIn2Out::connectOutputServer()
 {
-     try
+    try
     {
         std::cout << "looking for output server "
-                  << myOutputIP << ":" 
+                  << myOutputIP << ":"
                   << std::dec << myOutputPort << "\n";
-        
+
         // attempt connect just once
-        myTCPoutput.RetryConnectServer( false );
+        myTCPoutput.RetryConnectServer(false);
 
         myTCPoutput.client(
             myOutputIP,
@@ -114,7 +118,7 @@ void cIn2Out::connectOutputServer()
     catch (std::runtime_error &e)
     {
         std::cout << "Cannot connect to output server " << e.what();
-    }   
+    }
 }
 
 void cIn2Out::run()
@@ -147,7 +151,7 @@ void cIn2Out::input(const std::string &msg)
         std::cout << "Output " + mod << "\n";
 
         // send message to output
-        if( !myTCPoutput.isConnected() )
+        if (!myTCPoutput.isConnected())
         {
             std::cout << "no-one is listening\n";
             connectOutputServer();
