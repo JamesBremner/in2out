@@ -1,6 +1,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 #include <vector>
 
 #include "in2out.h"
@@ -22,54 +23,120 @@ cIn2Out::cIn2Out()
     test();
 }
 
-void cIn2Out::ParseOptionsNoBoost(int ac, char **av)
+class cCommandOption
 {
-   
-    std::string desc(
-        "\n--help\t\tproduce help message\n"
-        "--input\t\tPort to listen for input\n"
-        "--output\tIP address and port to send output e.g. 127.0.0.1:5001\n");
-
-    if (ac <= 1)
+public:
+    cCommandOption(
+        const std::string &name,
+        const std::string &desc)
+        : myName(name),
+          myDesc(desc)
     {
-        std::cout << desc;
-        exit(0);
+    }
+    void describe() const
+    {
+        std::cout << " --"
+                  << std::setw(10) << std::left << myName
+                  << "\t" << myDesc << "\n";
+    }
+    void value(const std::string &v)
+    {
+        myValue = v;
+    }
+    std::string value() const
+    {
+        return myValue;
     }
 
-    std::string cmdline;
-    for( int t = 1 ; t < ac; t++ )
-        cmdline += std::string(av[t]) + " ";
+private:
+    std::string myName;
+    std::string myDesc;
+    std::string myValue;
+};
 
-    std::istringstream iss( cmdline );
-    std::string token;
-    for (int k = 0; k < 2; k++)
+class cCommandParser
+{
+public:
+    void add(
+        const std::string &name,
+        const std::string &desc)
     {
-        iss >> token;
-        if (token == "--help")
+        myOption.insert(
+            std::make_pair(
+                name,
+                cCommandOption(name, desc)));
+    }
+    void describe()
+    {
+        std::cout << "\n";
+        for (auto o : myOption)
+            o.second.describe();
+        std::cout << "\n";
+    }
+    void parse(int ac, char **av)
+    {
+        if (ac <= 1)
         {
-            std::cout << desc;
+            describe();
             exit(0);
         }
-        if (token == "--input")
+
+        std::string myLine;
+        for (int t = 1; t < ac; t++)
+            myLine += std::string(av[t]) + " ";
+
+        std::istringstream iss(myLine);
+        std::string token, v;
+        for (int k = 0; k < (ac - 1) / 2; k++)
         {
-            iss >> token;
-            myInputPort = atoi(token.c_str());
-            continue;
-        }
-        if (token == "--output")
-        {
-            iss >> token;
-            int p = token.find(":");
-            if (p == -1)
+            iss >> token >> v;
+            if (token == "--help")
             {
-                std::cout << "\n"
-                          << desc << "\n";
+                describe();
                 exit(0);
             }
-            myOutputIP = token.substr(0, p);
-            myOutputPort = atoi(token.substr(p + 1).c_str());
-            continue;
+            auto o = myOption.find(token.substr(2));
+            if (o == myOption.end())
+                continue;
+            o->second.value(v);
         }
+    }
+    std::string value(const std::string name) const
+    {
+        auto o = myOption.find(name);
+        if (o == myOption.end())
+            return "";
+        return o->second.value();
+    }
+
+private:
+    std::map<std::string, cCommandOption> myOption;
+};
+
+void cIn2Out::ParseOptionsNoBoost(int ac, char **av)
+{
+    cCommandParser CP;
+    CP.add("help", "produce help message");
+    CP.add("input", "Port to listen for input");
+    CP.add("output", "IP address and port to send output e.g. 127.0.0.1:5001");
+
+    CP.parse(ac, av);
+
+    auto v = CP.value("input");
+    if (!v.empty())
+        myInputPort = atoi(v.c_str());
+
+    v = CP.value("output");
+    if (!v.empty())
+    {
+        int p = v.find(":");
+        if (p == -1)
+        {
+            CP.describe();
+            exit(0);
+        }
+        myOutputIP = v.substr(0, p);
+        myOutputPort = atoi(v.substr(p + 1).c_str());
     }
 }
 
