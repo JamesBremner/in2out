@@ -22,7 +22,7 @@ cIn2Out::cIn2Out(int ac, char **av) : myframeCheck(false)
 }
 cIn2Out::cIn2Out()
 {
-    test();
+    // test();
 }
 
 void cIn2Out::ParseOptionsNoBoost(int ac, char **av)
@@ -127,50 +127,90 @@ void cIn2Out::input(const std::string &msg)
     {
         if (!myTCPoutput.isConnected())
         {
-            std::cout << 
-                "no-one is listening\n"
-                "A new connect to server will be attempted\n"
-                "Meanwhile input data will be discarded\n";
+            std::cout << "no-one is listening\n"
+                         "A new connect to server will be attempted\n"
+                         "Meanwhile input data will be discarded\n";
+
             frameCheck("#$%clear");
+
             connectOutputServer();
+
             return;
         }
-        // modify message
-        auto mod = Process(line);
-        std::cout << "Output " + mod << "\n";
 
-        // send message to output
-        myTCPoutput.send(mod);
+        // send line to output
+        myTCPoutput.send(line);
     }
 }
 
 std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
 {
     std::vector<std::string> output;
-    static std::string partial;
 
     if (!myframeCheck)
     {
         output.push_back(msg);
         return output;
     }
-    if( msg == "#$%clear" )
+    if (msg == "#$%clear")
     {
-        partial = "";
+        myBacklog = "";
         return output;
     }
 
-    partial += msg;
-    int p = partial.find("\n");
-    if (p == -1)
-        return output;
-    while (p != -1)
+    myBacklog += msg;
+
+    int lineCount = countLines();
+
+    while (lineCount > 1)
     {
-        output.push_back(partial.substr(0, p));
-        partial = partial.substr(p + 1);
-        p = partial.find("\n");
+        int p = myBacklog.find("\n");
+        if (p == -1)
+            throw std::runtime_error("frameCheck line count");
+        auto line1 = myBacklog.substr(0, p);
+        int q = myBacklog.substr(p + 1).find("\n");
+        auto line2 = myBacklog.substr(p + 1, q);
+        myBacklog = myBacklog.substr(p + 1);
+        lineCount--;
+        if (isHeader(line2))
+        {
+            std::cout << "Package end\n";
+
+            // output modified last line of package
+            output.push_back( Process( line1 ));
+
+            // output package terminator
+            output.push_back("package_end\n");
+
+            return output;
+        }
+        else
+        {
+            // output ordinary line
+            output.push_back(line1);
+        }
+
     }
     return output;
+}
+
+bool cIn2Out::isHeader(const std::string &line) const
+{
+    return (line[2] != '/' && line[5] != '/');
+}
+
+int cIn2Out::countLines() const
+{
+    auto w = myBacklog;
+    int count = 0;
+    int p = w.find("\n");
+    while (p != -1)
+    {
+        count++;
+        w = w.substr(p + 1);
+        p = w.find("\n");
+    }
+    return count;
 }
 
 // handle some keyboard input

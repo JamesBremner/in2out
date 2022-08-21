@@ -50,6 +50,7 @@ private:
     std::string myOutputIP;
     int myOutputPort;
     bool myframeCheck;
+    std::string myBacklog;
 
     wex::cSocket myTCPinput;
     wex::cSocket myTCPoutput;
@@ -59,4 +60,6 @@ private:
     void test();
     void keyboardmonitor();
     void connectOutputServer();
+    int countLines() const;
+    bool isHeader( const std::string& line ) const;
 };
