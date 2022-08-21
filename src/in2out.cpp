@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <vector>
 
+#include "cCommandParser.h"
+
 #include "in2out.h"
 
 cIn2Out::cIn2Out(int ac, char **av) : myframeCheck(false)
@@ -23,99 +25,9 @@ cIn2Out::cIn2Out()
     test();
 }
 
-class cCommandOption
-{
-public:
-    cCommandOption(
-        const std::string &name,
-        const std::string &desc)
-        : myName(name),
-          myDesc(desc)
-    {
-    }
-    void describe() const
-    {
-        std::cout << " --"
-                  << std::setw(10) << std::left << myName
-                  << "\t" << myDesc << "\n";
-    }
-    void value(const std::string &v)
-    {
-        myValue = v;
-    }
-    std::string value() const
-    {
-        return myValue;
-    }
-
-private:
-    std::string myName;
-    std::string myDesc;
-    std::string myValue;
-};
-
-class cCommandParser
-{
-public:
-    void add(
-        const std::string &name,
-        const std::string &desc)
-    {
-        myOption.insert(
-            std::make_pair(
-                name,
-                cCommandOption(name, desc)));
-    }
-    void describe()
-    {
-        std::cout << "\n";
-        for (auto o : myOption)
-            o.second.describe();
-        std::cout << "\n";
-    }
-    void parse(int ac, char **av)
-    {
-        if (ac <= 1)
-        {
-            describe();
-            exit(0);
-        }
-
-        std::string myLine;
-        for (int t = 1; t < ac; t++)
-            myLine += std::string(av[t]) + " ";
-
-        std::istringstream iss(myLine);
-        std::string token, v;
-        for (int k = 0; k < (ac - 1) / 2; k++)
-        {
-            iss >> token >> v;
-            if (token == "--help")
-            {
-                describe();
-                exit(0);
-            }
-            auto o = myOption.find(token.substr(2));
-            if (o == myOption.end())
-                continue;
-            o->second.value(v);
-        }
-    }
-    std::string value(const std::string name) const
-    {
-        auto o = myOption.find(name);
-        if (o == myOption.end())
-            return "";
-        return o->second.value();
-    }
-
-private:
-    std::map<std::string, cCommandOption> myOption;
-};
-
 void cIn2Out::ParseOptionsNoBoost(int ac, char **av)
 {
-    cCommandParser CP;
+    raven::set::cCommandParser CP;
     CP.add("help", "produce help message");
     CP.add("input", "Port to listen for input");
     CP.add("output", "IP address and port to send output e.g. 127.0.0.1:5001");
@@ -213,17 +125,21 @@ void cIn2Out::input(const std::string &msg)
     // Loop over complete lines
     for (auto &line : frameCheck(msg))
     {
+        if (!myTCPoutput.isConnected())
+        {
+            std::cout << 
+                "no-one is listening\n"
+                "A new connect to server will be attempted\n"
+                "Meanwhile input data will be discarded\n";
+            frameCheck("#$%clear");
+            connectOutputServer();
+            return;
+        }
         // modify message
         auto mod = Process(line);
         std::cout << "Output " + mod << "\n";
 
         // send message to output
-        if (!myTCPoutput.isConnected())
-        {
-            std::cout << "no-one is listening\n";
-            connectOutputServer();
-            continue;
-        }
         myTCPoutput.send(mod);
     }
 }
@@ -236,6 +152,11 @@ std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
     if (!myframeCheck)
     {
         output.push_back(msg);
+        return output;
+    }
+    if( msg == "#$%clear" )
+    {
+        partial = "";
         return output;
     }
 
