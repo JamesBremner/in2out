@@ -14,7 +14,7 @@ static_link_flags = -static-libstdc++ -static-libgcc -static
 
 # folders
 ODIR = ./.vscode/obj
-RDIR = ../ravencode/pub/src
+RDIR = ./src/ravencode/pub/src
 
 OPT = -O2
 CCflags = -std=c++17 $(OPT) -D_mingw_
