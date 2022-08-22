@@ -60,6 +60,8 @@ private:
     void test();
     void keyboardmonitor();
     void connectOutputServer();
+    bool outputCheck();
+    void inputDisplay(const std::string &msg);
     int countLines() const;
     bool isHeader( const std::string& line ) const;
 };

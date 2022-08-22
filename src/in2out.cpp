@@ -65,6 +65,7 @@ void cIn2Out::connect()
             },
             [&](std::string &port, const std::string &msg)
             {
+                // Some input has arrived
                 input(msg);
             });
         std::cout << "Waiting for input on port "
@@ -114,6 +115,36 @@ void cIn2Out::run()
 
 void cIn2Out::input(const std::string &msg)
 {
+    inputDisplay(msg);
+
+    // Loop over complete lines
+    for (auto &line : frameCheck(msg))
+    {
+        if( ! outputCheck())
+            return;
+
+        // send line to output
+        myTCPoutput.send(line);
+    }
+}
+
+bool cIn2Out::outputCheck()
+{
+    if (myTCPoutput.isConnected())
+        return true;
+
+    std::cout << "no-one is listening\n"
+                 "A new connect to server will be attempted\n"
+                 "Meanwhile input data will be discarded\n";
+
+    frameCheck("#$%clear");
+
+    connectOutputServer();
+
+    return false;
+}
+void cIn2Out::inputDisplay(const std::string &msg)
+{
     std::cout << "Input: " + msg << "\n";
     std::cout << "Input Hex: ";
     for (int k = 0; k < msg.size(); k++)
@@ -121,26 +152,6 @@ void cIn2Out::input(const std::string &msg)
         std::cout << std::hex << (int)msg[k] << " ";
     }
     std::cout << "\n\n";
-
-    // Loop over complete lines
-    for (auto &line : frameCheck(msg))
-    {
-        if (!myTCPoutput.isConnected())
-        {
-            std::cout << "no-one is listening\n"
-                         "A new connect to server will be attempted\n"
-                         "Meanwhile input data will be discarded\n";
-
-            frameCheck("#$%clear");
-
-            connectOutputServer();
-
-            return;
-        }
-
-        // send line to output
-        myTCPoutput.send(line);
-    }
 }
 
 std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
@@ -177,7 +188,7 @@ std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
             std::cout << "Package end\n";
 
             // output modified last line of package
-            output.push_back( Process( line1 ));
+            output.push_back(Process(line1));
 
             // output package terminator
             output.push_back("package_end\n");
@@ -189,7 +200,6 @@ std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
             // output ordinary line
             output.push_back(line1);
         }
-
     }
     return output;
 }
