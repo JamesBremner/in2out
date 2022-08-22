@@ -109,7 +109,7 @@ void cIn2Out::run()
     }
     catch (std::runtime_error &e)
     {
-        std::cout << "cIn2Out::run: " << e.what();
+        std::cout << "cIn2Out::run unhandled exception " << e.what();
     }
 }
 
@@ -120,28 +120,38 @@ void cIn2Out::input(const std::string &msg)
     // Loop over complete lines
     for (auto &line : frameCheck(msg))
     {
-        if( ! outputCheck())
+        if (!myTCPoutput.isConnected())
+        {
+            noServerHandler();
             return;
+        }
 
         // send line to output
-        myTCPoutput.send(line);
+        try
+        {
+            myTCPoutput.send(line);
+        }
+        catch (std::runtime_error &e)
+        {
+            noServerHandler();
+            return;
+        }
     }
 }
 
-bool cIn2Out::outputCheck()
+void cIn2Out::noServerHandler()
 {
-    if (myTCPoutput.isConnected())
-        return true;
-
+    // let user know what is going on
     std::cout << "no-one is listening\n"
                  "A new connect to server will be attempted\n"
                  "Meanwhile input data will be discarded\n";
 
+    // discard remaining backlog
     frameCheck("#$%clear");
 
+    // attempt new connection
     connectOutputServer();
 
-    return false;
 }
 void cIn2Out::inputDisplay(const std::string &msg)
 {
@@ -208,14 +218,13 @@ bool cIn2Out::isHeader(const std::string &line) const
 {
     if (line[2] != '/' && line[5] != '/')
         return false;
-    
+
     // check for 2nd header, handle like a data line TID8
-    if( line.substr(0,3) == "mm/")
+    if (line.substr(0, 3) == "mm/")
         return false;
 
     // this is the initial header
     return true;
-
 }
 
 int cIn2Out::countLines() const
