@@ -206,7 +206,16 @@ std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
 
 bool cIn2Out::isHeader(const std::string &line) const
 {
-    return (line[2] != '/' && line[5] != '/');
+    if (line[2] != '/' && line[5] != '/')
+        return false;
+    
+    // check for 2nd header, handle like a data line TID8
+    if( line.substr(0,3) == "mm/")
+        return false;
+
+    // this is the initial header
+    return true;
+
 }
 
 int cIn2Out::countLines() const
