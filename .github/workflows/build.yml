@@ -13,9 +13,6 @@ jobs:
       run: make -f .vscode/makefile in2out
 
     - uses: actions/upload-artifact@v3
-
-     with:
-
-    name: my-artifact
-
-    path: bin/in2out.exe
+      with:
+         name: my-artifact
+         path: bin/in2out.exe
