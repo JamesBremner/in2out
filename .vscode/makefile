@@ -2,8 +2,8 @@
 VPATH = ./src 
 
 	# compiler include search paths
-INCS = -I./include \
-	-I../ravencode/pub/src \
+INCS =  \
+	-I./src/ravencode/pub/src \
 
 LIBS = \
 	-lws2_32 -lwsock32 \
