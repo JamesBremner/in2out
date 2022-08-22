@@ -1,5 +1,5 @@
 #source file search paths
-VPATH = ./src 
+VPATH = ./src ./src/ravencode/pub/src
 
 	# compiler include search paths
 INCS =  \
@@ -27,7 +27,7 @@ OBJ_in2out = \
 
 ### COMPILE
 
-$(ODIR)/ctcp.o: $(RDIR)/ctcp.cpp
+$(ODIR)/ctcp.o: ./src/ravencode/pub/src/ctcp.cpp
 	gcc	 -c -o $@ $<
 
 $(ODIR)/%.o: %.cpp in2out.h
