@@ -28,11 +28,11 @@ public:
     std::string Process(const std::string &input);
 
     /** Start the windex event handler
-     * 
+     *
      * This blocks!
-     * 
+     *
      * Call this once when everything has been setup
-     * 
+     *
      * This is used by console type applications.
      * GUI applications should not call this
      * They will call run on the main application window when setup is complete
@@ -55,7 +55,7 @@ private:
     wex::cSocket myTCPinput;
     wex::cSocket myTCPoutput;
 
-    std::thread* myKeyboardThread;
+    std::thread *myKeyboardThread;
 
     void test();
     void keyboardmonitor();
@@ -63,5 +63,7 @@ private:
     void noServerHandler();
     void inputDisplay(const std::string &msg);
     int countLines() const;
-    bool isHeader( const std::string& line ) const;
+    bool isLastData(
+        const std::string &line1,
+        const std::string &line2) const;
 };

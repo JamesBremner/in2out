@@ -151,7 +151,6 @@ void cIn2Out::noServerHandler()
 
     // attempt new connection
     connectOutputServer();
-
 }
 void cIn2Out::inputDisplay(const std::string &msg)
 {
@@ -193,7 +192,7 @@ std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
         auto line2 = myBacklog.substr(p + 1, q);
         myBacklog = myBacklog.substr(p + 1);
         lineCount--;
-        if (isHeader(line2))
+        if (isLastData(line1, line2))
         {
             std::cout << "Package end\n";
 
@@ -205,26 +204,32 @@ std::vector<std::string> cIn2Out::frameCheck(const std::string &msg)
 
             return output;
         }
-        else
-        {
-            // output ordinary line
-            output.push_back(line1);
-        }
+        // output data line or HEADER X
+        output.push_back(line1);
     }
     return output;
 }
 
-bool cIn2Out::isHeader(const std::string &line) const
+bool cIn2Out::isLastData(
+    const std::string &line1,
+    const std::string &line2) const
 {
-    if (line[2] == '/' && line[5] == '/')
-        return false;
+    // std::cout << "isLastData  "
+    //           << "\nline1 " << line1
+    //           << "\nline2 " << line2 << "\n";
 
-    // check for 2nd header, handle like a data line TID8
-    if (line.substr(0, 3) == "mm/")
-        return false;
+    bool line1Data = (line1[2] == '/' &&
+                      line1[5] == '/' &&
+                      atoi(line1.c_str()) != 0 &&
+                      atoi(line1.substr(3).c_str()) != 0 &&
+                      atoi(line1.substr(6).c_str()) != 0);
+    bool line2Data = (line2[2] == '/' &&
+                      line2[5] == '/' &&
+                      atoi(line2.c_str()) != 0 &&
+                      atoi(line2.substr(3).c_str()) != 0 &&
+                      atoi(line2.substr(6).c_str()) != 0);
 
-    // this is the initial header
-    return true;
+    return (line1Data && (!line2Data));
 }
 
 int cIn2Out::countLines() const
@@ -284,7 +289,7 @@ main(int argc, char *argv[])
     std::cout << "in2out built " + std::string(__DATE__) + " " + std::string(__TIME__) + "\n";
 
     // run tests
-    cIn2Out test;
+     cIn2Out test;
 
     // start sockets
     cIn2Out in2out(argc, argv);
