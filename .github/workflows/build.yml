@@ -1,4 +1,4 @@
-name: C/C++ builder
+name: in2out build
 
 on: workflow_dispatch
 
