@@ -1,0 +1,18 @@
+name: in2out build from button
+
+on: repository_dispatch:
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: make
+      run: make -f .vscode/makefile in2out
+
+    - uses: actions/upload-artifact@v3
+      with:
+         name: in2out_exec
+         path: bin/in2out.exe
