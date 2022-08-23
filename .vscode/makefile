@@ -27,7 +27,7 @@ OBJ_in2out = \
 
 ### COMPILE
 
-$(ODIR)/ctcp.o: ctcp.cpp
+$(ODIR)/ctcp.o: $(RDIR)/ctcp.cpp
 	gcc	 -c -o $@ $<
 
 $(ODIR)/%.o: %.cpp in2out.h
