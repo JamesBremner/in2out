@@ -1,6 +1,6 @@
 name: in2out build from button
 
-on: repository_dispatch:
+on: repository_dispatch
 
 jobs:
   build:
