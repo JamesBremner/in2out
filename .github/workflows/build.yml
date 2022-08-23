@@ -14,5 +14,5 @@ jobs:
 
     - uses: actions/upload-artifact@v3
       with:
-         name: my-artifact
+         name: in2out_exec
          path: bin/in2out.exe
