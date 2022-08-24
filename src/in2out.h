@@ -93,7 +93,7 @@ private:
      * @return true if line1 is the last data line of a package
      * 
      * line1 is the last data line in a package
-     * if it is a data line and line is not.
+     * if it is a data line and line2 is not.
      * 
      * Details: https://github.com/JamesBremner/in2out/wiki/Input
      */
